@@ -1,0 +1,36 @@
+/* Homepage cover (js/cover.js), in the style of zentry.com's intro. Shown before the homepage on a fresh visit
+   or a reload (not when coming back from another page of the site). The page opens on Scizor red, which pulls
+   back into the logo; ENTER sends it rushing back in until the red fills the screen, and a window opens in the
+   red onto the homepage. */
+.cover { display: none; }
+html.cover-on { overflow: hidden; }
+/* Red from the very first frame, before the script has run */
+html.cover-on .cover { display: block; position: fixed; inset: 0; z-index: 1000; color: #eafaf7; background: #ed3039; }
+html.cover-on .cover.is-logo { background: #14181e; }
+html.cover-on .cover.is-revealing { background: transparent; }
+
+.cover-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+.cover-logo { display: none; }
+.cover.is-logo .cover-logo { display: inline; }
+.cover-fill { display: none; fill: #ed3039; }
+.cover.is-revealing .cover-logo { display: none; }
+.cover.is-revealing .cover-fill { display: inline; }
+.logo-head { fill: #ed3039; }
+.logo-jaw { fill: #c41e2b; }
+.logo-eye { fill: #14181e; }
+.logo-slit { fill: #ffe330; }
+
+/* Under the logo: the percentage while the homepage loads, then ENTER in its place (js/cover.js sets their top) */
+.cover-count, .cover-enter { position: absolute; left: 50%; top: 70%; transform: translate(-50%, -50%); margin: 0; box-sizing: border-box; border: 1px solid rgba(234, 250, 247, .28); border-radius: 999px; background: rgba(255, 255, 255, .03); color: inherit; font: 500 12px var(--mono); text-transform: uppercase; opacity: 0; pointer-events: none; }
+.cover-count { min-width: 4.8em; padding: 11px 16px; text-align: center; letter-spacing: .12em; font-variant-numeric: tabular-nums; transition: opacity .4s ease; }
+.cover.is-resting .cover-count { opacity: 1; }
+.cover.ready .cover-count { opacity: 0; transition: opacity .25s ease; }
+.cover-enter { padding: 13px 20px 13px 26px; letter-spacing: .5em; cursor: pointer; transition: opacity .6s ease, background .2s ease, border-color .2s ease; }
+.cover-enter:hover, .cover-enter:focus-visible { background: rgba(255, 255, 255, .08); border-color: #eafaf7; outline: none; }
+.cover.ready .cover-enter { opacity: 1; pointer-events: auto; transition: opacity .6s ease .2s, background .2s ease, border-color .2s ease; }
+.cover.leaving .cover-enter { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+
+/* Reduced motion: the logo simply fades in, and ENTER fades the cover away */
+.cover.calm.is-logo .cover-logo { animation: cover-fade .6s ease both; }
+.cover.calm.leaving { opacity: 0; transition: opacity .6s ease; }
+@keyframes cover-fade { from { opacity: 0; } }

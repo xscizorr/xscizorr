@@ -1,0 +1,137 @@
+/* Collection page (js/collection.js): a menu like the touch screen in Pokémon Black and White. The entire checklist
+   (checklist.html) uses the same screen. Everything inside the screen is sized in --u, a hundredth of the
+   screen's width, so it scales as one piece, from a phone to a desktop; on the checklist's wider screen --u
+   stops growing at the menu's full size. The screen keeps its own colours in light and dark mode. */
+
+/* The game's own lettering: "Pokemon B/W" by metax, made on FontStruct, free to use with credit (CC BY 3.0, see
+   assets/fonts/PokemonBW-LICENSE.txt; the credit is in the page's footer). It has a single weight, so the browser
+   is told not to fake a bold one. It has letters, numbers and basic punctuation only. */
+@font-face {
+  font-family: "Pokemon BW";
+  src: url("../assets/fonts/PokemonBW.otf") format("opentype");
+  font-display: swap;
+}
+.dsm-page { padding-block: clamp(28px, 5vw, 64px) 8px; }
+.dsm { --u: 1cqw; container-type: inline-size; max-width: 820px; margin-inline: auto; border-radius: 14px; overflow: hidden; background: #f3f3f3; box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 24px 60px -24px rgba(0, 0, 0, .55); font-family: "Pokemon BW", var(--mono); font-weight: 400; font-synthesis: none; }
+
+/* ---------- the status bar ---------- */
+.dsm-top { display: flex; align-items: center; gap: calc(var(--u) * 4); height: calc(var(--u) * 6.6); padding-inline: calc(var(--u) * 3.2); background: linear-gradient(#222225, #141416); border-bottom: calc(var(--u) * .5) solid #9a9ca3; color: #f2f2f2; font-size: calc(var(--u) * 3.2); letter-spacing: .14em; }
+.dsm-clock { letter-spacing: .3em; }
+.dsm-signals { flex: 1; display: flex; justify-content: center; gap: calc(var(--u) * 2.6); color: #6d6f76; font-size: calc(var(--u) * 2.5); }
+.dsm-signals span::before { content: ""; display: inline-block; width: calc(var(--u) * 1); height: calc(var(--u) * 1); margin-right: calc(var(--u) * .8); vertical-align: calc(var(--u) * .25); background: currentColor; }
+.dsm-battery { position: relative; width: calc(var(--u) * 2.6); height: calc(var(--u) * 3.6); border: calc(var(--u) * .4) solid #f2f2f2; border-radius: calc(var(--u) * .3); }
+.dsm-battery::before { content: ""; position: absolute; left: calc(var(--u) * .5); right: calc(var(--u) * .5); top: calc(var(--u) * -1); height: calc(var(--u) * .6); background: #f2f2f2; }
+.dsm-battery::after { content: ""; position: absolute; inset: calc(var(--u) * .5); background: repeating-linear-gradient(#f2f2f2 0 calc(var(--u) * .6), transparent calc(var(--u) * .6) calc(var(--u) * 1)); }
+
+/* ---------- the grid paper and the boxes ---------- */
+/* White paper with a fine grey grid, and a darker line down the middle between the two columns. It's always at
+   least as tall as the main menu's three rows, so the screen keeps its size; a shorter screen sits in the middle. */
+.dsm-paper {
+  display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: calc(var(--u) * 56.5); padding: calc(var(--u) * 3.4) calc(var(--u) * 2.6); background-color: #f6f6f6;
+  background-image: linear-gradient(90deg, transparent calc(50% - calc(var(--u) * .35)), #cfd0d4 calc(50% - calc(var(--u) * .35)) calc(50% + calc(var(--u) * .35)), transparent calc(50% + calc(var(--u) * .35))),
+    linear-gradient(#dcdde1 calc(var(--u) * .25), transparent calc(var(--u) * .25)), linear-gradient(90deg, #dcdde1 calc(var(--u) * .25), transparent calc(var(--u) * .25));
+  background-size: 100% 100%, calc(var(--u) * 3.2) calc(var(--u) * 3.2), calc(var(--u) * 3.2) calc(var(--u) * 3.2);
+}
+.dsm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 3.6) calc(var(--u) * 4.2); }
+.dsm-grid[hidden] { display: none; }
+
+/* A box: dark, with a tab along the top on the left (two clipped layers: the outline, and the fill inside it).
+   Pointed at (or picked with the keyboard), it glows blue, as the chosen box does in the game. */
+.dsm-box {
+  --tab: calc(var(--u) * 2.2); --edge: calc(var(--u) * .55);
+  position: relative; isolation: isolate; display: flex; align-items: center; gap: calc(var(--u) * 2.8); aspect-ratio: 3.2;
+  padding: calc(var(--tab) + calc(var(--u) * .4)) calc(var(--u) * 2.6) calc(var(--u) * .4) calc(var(--u) * 2.8); border: 0; margin: 0; background: none; color: #fff; text-align: left; text-decoration: none; cursor: pointer;
+  font: inherit; -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 calc(var(--u) * .45) 0 rgba(0, 0, 0, .18)); transition: filter .12s ease;
+}
+.dsm-box::before, .dsm-box::after { content: ""; position: absolute; z-index: -1; }
+.dsm-box::before { inset: 0; background: #0c0c0e; clip-path: polygon(0 0, 58% 0, calc(58% + var(--tab)) var(--tab), 100% var(--tab), 100% 100%, 0 100%); }
+.dsm-box::after {
+  inset: var(--edge); clip-path: polygon(0 0, calc(58% - var(--edge)) 0, calc(58% - var(--edge) + var(--tab)) var(--tab), 100% var(--tab), 100% 100%, 0 100%);
+  background: linear-gradient(118deg, #222225 0 57%, #2c2c30 57% 100%); box-shadow: inset 0 calc(var(--u) * .35) 0 rgba(255, 255, 255, .13), inset calc(var(--u) * .35) 0 0 rgba(255, 255, 255, .06);
+}
+.dsm-box:hover, .dsm-box:focus-visible, .dsm-box.is-on { outline: none; filter: drop-shadow(0 0 calc(var(--u) * .9) rgba(70, 190, 255, .95)) drop-shadow(0 0 calc(var(--u) * 2.4) rgba(40, 150, 255, .55)); }
+.dsm-box:hover::before, .dsm-box:focus-visible::before, .dsm-box.is-on::before { background: #9fdcff; }
+.dsm-box:hover::after, .dsm-box:focus-visible::after, .dsm-box.is-on::after { background: linear-gradient(118deg, #40e2e4 0 54%, #2a9ed6 54% 100%); box-shadow: inset 0 calc(var(--u) * .4) 0 rgba(255, 255, 255, .45), inset calc(var(--u) * .4) 0 0 rgba(255, 255, 255, .25); }
+
+/* The icon, which hops while its box is pointed at: up, a pause at the top, and down again, every .7s (timed
+   from the game) */
+.dsm-icon { flex: none; display: block; width: calc(var(--u) * 9.4); aspect-ratio: 1; }
+.dsm-icon svg { display: block; width: 100%; height: 100%; }
+.dsm-box:hover .dsm-icon, .dsm-box:focus-visible .dsm-icon, .dsm-box.is-on .dsm-icon { animation: dsm-hop .7s linear infinite; }
+@keyframes dsm-hop {
+  0%, 9% { transform: translateY(0); }
+  15% { transform: translateY(calc(var(--u) * -.6)); }
+  22% { transform: translateY(calc(var(--u) * -1.05)); }
+  29%, 61% { transform: translateY(calc(var(--u) * -1.45)); }
+  69% { transform: translateY(calc(var(--u) * -1.05)); }
+  80% { transform: translateY(calc(var(--u) * -.6)); }
+  90%, 100% { transform: translateY(0); }
+}
+
+/* The label: white capitals with a dark outline */
+.dsm-label { min-width: 0; font-size: calc(var(--u) * 3.3); line-height: 1.08; letter-spacing: .03em; text-transform: uppercase; text-wrap: balance;
+  --o: calc(var(--u) * .24); text-shadow: var(--o) 0 #121214, calc(var(--o) * -1) 0 #121214, 0 var(--o) #121214, 0 calc(var(--o) * -1) #121214, var(--o) var(--o) #121214, calc(var(--o) * -1) var(--o) #121214, var(--o) calc(var(--o) * -1) #121214, calc(var(--o) * -1) calc(var(--o) * -1) #121214, 0 calc(var(--u) * .5) 0 rgba(0, 0, 0, .35); }
+
+/* A smaller second line under a label (the card count, or a language's progress), and the square dots between
+   its parts (the font has no ·) */
+.dsm-label small { display: block; margin-top: calc(var(--u) * .5); font-size: calc(var(--u) * 2.1); letter-spacing: .06em; color: #c9eef7; }
+.dsm-dot { display: inline-block; width: calc(var(--u) * .55); height: calc(var(--u) * .55); margin: 0 calc(var(--u) * .9); vertical-align: calc(var(--u) * .45); background: currentColor; }
+
+/* ---------- the languages ---------- */
+.dsm-lang .dsm-label { font-size: calc(var(--u) * 2.7); }
+.dsm-flag { width: calc(var(--u) * 7.8); aspect-ratio: 3 / 2; }
+.dsm-flag svg { border-radius: calc(var(--u) * .4); box-shadow: 0 0 0 calc(var(--u) * .3) #121214; }
+@container (max-width: 560px) {
+  .dsm-langs { grid-template-columns: 1fr; gap: calc(var(--u) * 3); }
+  .dsm-lang { aspect-ratio: 5; }
+  .dsm-lang .dsm-label { font-size: calc(var(--u) * 4.2); }
+  .dsm-lang .dsm-label small { font-size: calc(var(--u) * 3.2); }
+  .dsm-lang .dsm-flag { width: calc(var(--u) * 11); }
+}
+
+/* ---------- the bottom bar: a message, and the red ✕ ---------- */
+.dsm-bottom { display: flex; align-items: center; gap: calc(var(--u) * 3); height: calc(var(--u) * 9); padding-inline: calc(var(--u) * 3.2) calc(var(--u) * 2.4); background: linear-gradient(#2a2a2e, #141416); border-top: calc(var(--u) * .5) solid #4a4b52; }
+.dsm-msg { flex: 1; margin: 0; color: #e8e8ea; font-size: calc(var(--u) * 2.9); letter-spacing: .08em; text-transform: uppercase; }
+.dsm-x { display: grid; place-items: center; width: calc(var(--u) * 7); height: calc(var(--u) * 7); border-radius: calc(var(--u) * 1); color: #f2343c; transition: background .15s, transform .15s; }
+.dsm-x svg { width: calc(var(--u) * 4.4); height: calc(var(--u) * 4.4); fill: currentColor; filter: drop-shadow(calc(var(--u) * .3) calc(var(--u) * .3) 0 #5d0d12); }
+.dsm-x:hover, .dsm-x:focus-visible { background: rgba(255, 255, 255, .08); outline: none; transform: scale(1.08); }
+
+/* ---------- the wider screen (the entire checklist and the language pages) ---------- */
+/* The screen fills the page's width, but everything sized in --u stops growing at the menu's full size. Inside
+   it, the site's colours are always the dark ones, so cards, buttons and fields match the screen. */
+.dsm-page.dsm-wide-page { max-width: 1640px; }
+.dsm.dsm-wide {
+  --u: min(1cqw, 8.2px); max-width: none; overflow: clip;
+  --surface: #222225; --surface-2: #2c2c30; --line: #34343a; --line-2: #45454c; --fg: #f2f2f2; --fg-2: #b9bcc4; --fg-3: #8a8d95;
+  --ink: #f2f2f2; --on-ink: #151516; --accent: #e0484c; --accent-hi: #ff6b6e; --accent-soft: #3a1c1d;
+  --obtained: #e3474c; --transit: #e8b23a; --unobtained: #4a4b51; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .3);
+  color: var(--fg);
+}
+/* The bar along the bottom (with the ✕) stays on screen while the page scrolls past */
+.dsm-wide .dsm-bottom { position: sticky; bottom: 0; z-index: 3; }
+/* Plain grid paper, without the line down the middle */
+.dsm-paper.dsm-sheet {
+  display: block; min-height: 0; padding-inline: calc(var(--u) * 1.4);
+  background-image: linear-gradient(#dcdde1 calc(var(--u) * .25), transparent calc(var(--u) * .25)), linear-gradient(90deg, #dcdde1 calc(var(--u) * .25), transparent calc(var(--u) * .25));
+  background-size: calc(var(--u) * 3.2) calc(var(--u) * 3.2);
+}
+
+/* A panel: dark, with a tab along the top on the left, like the menu's boxes (an outline layer and a fill layer) */
+.dsm-panel {
+  --tab: calc(var(--u) * 2.2); --edge: calc(var(--u) * .55); --at: min(62%, calc(var(--u) * 54));
+  position: relative; isolation: isolate; margin-bottom: calc(var(--u) * 3.6); padding: calc(var(--tab) + var(--u) * 1.8) calc(var(--u) * 3) calc(var(--u) * 2.8);
+  color: #f2f2f2; filter: drop-shadow(0 calc(var(--u) * .45) 0 rgba(0, 0, 0, .18));
+}
+.dsm-panel::before, .dsm-panel::after { content: ""; position: absolute; z-index: -1; }
+.dsm-panel::before { inset: 0; background: #0c0c0e; clip-path: polygon(0 0, var(--at) 0, calc(var(--at) + var(--tab)) var(--tab), 100% var(--tab), 100% 100%, 0 100%); }
+.dsm-panel::after {
+  inset: var(--edge); clip-path: polygon(0 0, calc(var(--at) - var(--edge)) 0, calc(var(--at) - var(--edge) + var(--tab)) var(--tab), 100% var(--tab), 100% 100%, 0 100%);
+  background: #222225; box-shadow: inset 0 calc(var(--u) * .35) 0 rgba(255, 255, 255, .13), inset calc(var(--u) * .35) 0 0 rgba(255, 255, 255, .06);
+}
+/* A panel's heading: an icon (or flag), then the title in the menu's lettering with a smaller line under it */
+.dsm-head { display: flex; align-items: center; gap: calc(var(--u) * 2.4); }
+.dsm-head .dsm-icon { width: max(34px, calc(var(--u) * 7.6)); }
+.dsm-head .dsm-flag { width: max(40px, calc(var(--u) * 8.6)); }
+.dsm-head h1 { margin: 0; font-size: max(17px, calc(var(--u) * 4)); }
+.dsm-head h1 small { font-size: max(11px, calc(var(--u) * 1.9)); }
